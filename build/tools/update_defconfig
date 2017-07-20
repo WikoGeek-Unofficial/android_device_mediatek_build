@@ -1,0 +1,29 @@
+#!/bin/sh
+
+TMPDIR=oo-$$
+KERNEL_BASE=kernel-3.4
+CONFIG_DIR=$KERNEL_BASE/arch/arm/configs
+
+if [ ! -d device/mediatek/build/config -o ! -d $CONFIG_DIR ]; then
+    echo Must in AOSP ALPS dir.
+    exit 1
+fi
+
+CONFIGS=`cd ${CONFIG_DIR} ; ls mt* muse* ratch*`
+#CONFIGS=`cd ${CONFIG_DIR} ; ls mt6572_phone*`
+for i in $CONFIGS ; do
+    pushd $KERNEL_BASE
+    mkdir $TMPDIR
+    make $i O=$TMPDIR
+
+    cmp $TMPDIR/.config arch/arm/configs/$i
+    RET=$?
+    if [ $RET != 0 ]; then
+        echo Update $i
+        cp -f $TMPDIR/.config arch/arm/configs/$i
+        p4 edit arch/arm/configs/$i
+    fi
+    popd
+done
+rm -rf $KERNEL_BASE/$TMPDIR
+
